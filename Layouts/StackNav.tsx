@@ -4,6 +4,10 @@ import LoginScreen from './LoginScreen';
 import DashboardHealthcare from './DashboardHealthcare';
 import BottomTabNavigator from './Navigation'; 
 import DashboardScreen from './DashboardScreen';
+import TemperatureDashboard from './TemperatureDashboard';
+import MedicationReminderScreen from './MedicationScreen';
+import CalendarScreen from './CalendarScreen';
+
 
 const Stack = createNativeStackNavigator();
 
@@ -22,6 +26,11 @@ function AppNavigator({deviceToken}) {
       />
       <Stack.Screen name="Dashboard" component={DashboardScreen} />
       <Stack.Screen name="RitmoCardiaco" component={DashboardHealthcare} />
+      <Stack.Screen name="Temperatura" component={TemperatureDashboard} />
+      <Stack.Screen name="Medicina" component={MedicationReminderScreen} />
+      <Stack.Screen name="Calendario" component={CalendarScreen} />
+
+
     </Stack.Navigator>
   );
 }

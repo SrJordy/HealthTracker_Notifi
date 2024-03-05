@@ -5,7 +5,9 @@ import HomeScreen from './HomeScreen';
 import DashboardScreen from './DashboardScreen';
 import CuidadorDashboard from './PatientList';
 import { useAuth } from './AuthContext';
-// Cargando los íconos
+import MedicationReminderScreen from './MedicationScreen';
+import CalendarScreen from './CalendarScreen';
+
 const Profile = require('./src/icons/user_person_profile_account_icon_259562.png');
 const dashboardicon = require('./src/icons/analytic_dashboard_home_manage_user_interface_icon_123286.png');
 const Calendario = require('./src/icons/calendar.png');
@@ -15,7 +17,6 @@ const listapaciente=require('./src/icons/patientlist.png')
 const Tab = createBottomTabNavigator();
 
 const BottomTabNavigator = () => {
-  // No necesitas el contexto de autenticación si solo mostrarás HomeScreen
   const { user } = useAuth();
   return (
     <Tab.Navigator
@@ -33,7 +34,6 @@ const BottomTabNavigator = () => {
           } else if (route.name === 'Medicamento') {
             icon = <Image source={medicamento} style={{ width: 30, height: 30, tintColor: color }} />;
           }
-          return icon;
           return icon;
         },
         tabBarActiveTintColor: '#ff5b37', 
@@ -54,14 +54,14 @@ const BottomTabNavigator = () => {
       {user && user.roles === 'paciente' && (
         <>
           <Tab.Screen name="Datos" component={DashboardScreen} />
-          {/* Añadir otras pantallas específicas para 'paciente' aquí */}
+          <Tab.Screen name="Calendario" component={CalendarScreen} />
+          <Tab.Screen name="Medicamento" component={MedicationReminderScreen} />
         </>
       )}
 
       {user && user.roles === 'cuidador' && (
         <>
           <Tab.Screen name="Lista" component={CuidadorDashboard} />
-          {/* Añadir otras pantallas específicas para 'cuidador' aquí */}
         </>
       )}
     </Tab.Navigator>
