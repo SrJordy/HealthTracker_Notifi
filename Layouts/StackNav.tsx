@@ -1,13 +1,15 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import LoginScreen from './LoginScreen';
-import HomeScreen from './HomeScreen';
+import DashboardHealthcare from './DashboardHealthcare';
 import BottomTabNavigator from './Navigation'; 
+import DashboardScreen from './DashboardScreen';
+
 const Stack = createNativeStackNavigator();
 
 function AppNavigator({deviceToken}) {
   return (
-    <Stack.Navigator initialRouteName="Login">
+    <Stack.Navigator initialRouteName="Login"screenOptions={{ headerShown: false }}>
       <Stack.Screen 
         name="Login" 
         options={{ headerShown: false }}
@@ -18,6 +20,8 @@ function AppNavigator({deviceToken}) {
         component={BottomTabNavigator} 
         options={{ headerShown: false }} 
       />
+      <Stack.Screen name="Dashboard" component={DashboardScreen} />
+      <Stack.Screen name="RitmoCardiaco" component={DashboardHealthcare} />
     </Stack.Navigator>
   );
 }
