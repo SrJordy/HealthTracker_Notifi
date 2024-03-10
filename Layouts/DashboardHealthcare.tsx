@@ -4,10 +4,40 @@ import LottieView from 'lottie-react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { useNavigation } from '@react-navigation/native';
 
-const DashboardHealthcare = ({ ritmoCardiacoProp }) => {
+const DashboardHealthcare = () => {
     const lottieSource = require('./src/healthanimation.json');
     const navigation = useNavigation();
-    const ritmoCardiaco = ritmoCardiacoProp || 85;
+    const [ritmoCardiaco, setRitmoCardiaco] = useState(null);
+
+    const [dataValues, setDataValues] = useState(Array(60).fill(0));
+
+    useEffect(() => {
+        const fetchRitmoCardiaco = () => {
+            fetch('https://carinosaapi.onrender.com/api/arduino/devices')
+                .then(response => response.json())
+                .then(data => {
+                    const deviceData = data.find(device => device.thing.device_name === 'Esp32');
+                    if (deviceData) {
+                        const latidosProperty = deviceData.thing.properties.find(prop => prop.name === 'latidos');
+                        if (latidosProperty) {
+                            const nuevoValorRitmoCardiaco = parseFloat(latidosProperty.last_value);
+                            setRitmoCardiaco(nuevoValorRitmoCardiaco);
+                            // Asegúrate de que la actualización de dataValues refleje los cambios en tiempo real
+                            setDataValues(prevData => {
+                                // Aquí creas un nuevo array que refleje el cambio, preservando la longitud deseada del array
+                                const newData = [...prevData.slice(1), nuevoValorRitmoCardiaco];
+                                return newData;
+                            });
+                        }
+                    }
+                })
+                .catch(error => console.error("Error fetching device data:", error));
+        };
+        // Establece un intervalo para la actualización. Ajusta este intervalo según la frecuencia de actualización deseada.
+        const intervalId = setInterval(fetchRitmoCardiaco, 5000);
+        return () => clearInterval(intervalId);
+    }, []);
+    
 
     const estadoColor = {
         normal: '#2ecc71',
@@ -21,22 +51,13 @@ const DashboardHealthcare = ({ ritmoCardiacoProp }) => {
 
     const handleBackButtonPress = () => navigation.goBack();
 
-    const dataLabels = Array.from({ length: 60 }, (_, i) => `Min ${i + 1}`);
+    const dataLabels = Array.from({ length: dataValues.length }, (_, i) => `${i + 1}`);
     const chartWidth = Math.max(700, dataLabels.length * 60);
-
-    const [dataValues, setDataValues] = useState(Array.from({ length: 60 }, () => Math.floor(Math.random() * 40) + 60));
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setDataValues(prevData => [...prevData.slice(1), Math.floor(Math.random() * 40) + 60]);
-        }, 60000);
-        return () => clearInterval(interval);
-    }, []);
 
     const data = {
         labels: dataLabels,
         datasets: [{
-            data: dataValues.map(value => Math.round(value)),
+            data: dataValues,
             color: () => estadoColor[estado],
             strokeWidth: 2,
         }],
@@ -50,6 +71,7 @@ const DashboardHealthcare = ({ ritmoCardiacoProp }) => {
         propsForLabels: {
             fontSize: 10,
         },
+        decimalPlaces: 0, // Muestra valores sin decimales para simular mejor un electrocardiograma
     };
 
     return (
@@ -63,7 +85,7 @@ const DashboardHealthcare = ({ ritmoCardiacoProp }) => {
                 <LottieView source={lottieSource} autoPlay loop style={styles.lottieLogo} />
             </View>
 
-            <Text style={styles.heartRate}>Ritmo Cardíaco: {ritmoCardiaco} bpm</Text>
+            <Text style={styles.heartRate}>Ritmo Cardíaco: {ritmoCardiaco !== null ? `${ritmoCardiaco} bpm` : 'Cargando...'} </Text>
             <Text style={[styles.status, { color: estadoColor[estado] }]}>Estado: {estado}</Text>
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>

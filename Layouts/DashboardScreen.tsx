@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView, Dimensions } from 'react-native';
 import LottieView from 'lottie-react-native';
 import { useAuth } from './AuthContext';
@@ -12,10 +12,45 @@ const { width } = Dimensions.get('window');
 const cardSize = (width - 60) * 0.45;
 const imageSize = cardSize * 0.5;
 const fontSizeTitle = cardSize * 0.1;
-const fontSizeContent = cardSize * 0.08; 
+const fontSizeContent = cardSize * 0.08;
 
 const DashboardScreen = ({ navigation }) => {
-  const { user } = useAuth();
+  const { user, pacie } = useAuth();
+  const [ritmoCardiaco, setRitmoCardiaco] = useState(null);
+  const [Temp, setTemperatura] = useState('');
+
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      fetch('https://carinosaapi.onrender.com/api/arduino/devices')
+        .then((response) => response.json())
+        .then((data) => {
+          const deviceData = data.find(device => device.thing.device_name === 'Esp32');
+          if (deviceData) {
+            const latidosProperty = deviceData.thing.properties.find(prop => prop.name === 'latidos');
+            const temperaturaProperty = deviceData.thing.properties.find(prop => prop.name === 'temperatura');
+
+            if (latidosProperty) {
+              setRitmoCardiaco(latidosProperty.last_value);
+              console.log(`Ritmo Cardíacoss: ${latidosProperty.last_value} bpm`);
+
+            }
+
+            if (temperaturaProperty) {
+              setTemperatura(temperaturaProperty.last_value);
+              console.log(`Temperatura: ${temperaturaProperty.last_value}°C`);
+
+            }
+          }
+        })
+        .catch((error) => console.error("Error fetching device data:", error));
+    }, 5000);
+    return () => clearInterval(intervalId);
+  }, []);
+
+
+  const pacienteId = user.roles === 'paciente' ? user.Paciente.ID : pacie.ID;
+  console.log(`El ID del paciente es: ${pacienteId}`);
 
   return (
     <>
@@ -31,13 +66,17 @@ const DashboardScreen = ({ navigation }) => {
           <TouchableOpacity style={[styles.card, { height: cardSize }]} onPress={() => navigation.navigate('RitmoCardiaco')}>
             <Text style={[styles.cardTitle, { fontSize: fontSizeTitle }]}>Ritmo Cardíaco</Text>
             <LottieView source={ritmoCardiacoAnimation} style={[styles.lottieAnimation, { width: imageSize, height: imageSize }]} autoPlay loop />
-            <Text style={[styles.cardContent, { fontSize: fontSizeContent }]}>75 bpm</Text>
+            <Text style={[styles.cardContent, { fontSize: fontSizeContent }]}>
+              {ritmoCardiaco !== null ? `${ritmoCardiaco} bpm` : 'Cargando...'}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={[styles.card, { height: cardSize }]} onPress={() => navigation.navigate('Temperatura')}>
             <Text style={[styles.cardTitle, { fontSize: fontSizeTitle }]}>Temperatura</Text>
             <LottieView source={temperatura} style={[styles.lottieAnimation, { width: imageSize, height: imageSize }]} autoPlay loop />
-            <Text style={[styles.cardContent, { fontSize: fontSizeContent }]}>36.6°C</Text>
+            <Text style={[styles.cardContent, { fontSize: fontSizeContent }]}>
+              {Temp ? `${parseFloat(Temp).toFixed(2)}°C` : 'Cargando...'}
+            </Text>
           </TouchableOpacity>
         </View>
 

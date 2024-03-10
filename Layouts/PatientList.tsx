@@ -55,7 +55,7 @@ const CuidadorDashboard = ({navigation}) => {
           <Text style={styles.cardTitle}>{item.User.firstname} {item.User.lastname}</Text>
           <Text style={styles.cardText}>Género: {item.User.gender}</Text>
           <Text style={styles.cardText}>Edad: {edad} años</Text>
-          <Text style={styles.cardText}>Cedula: {item.cedula}</Text>
+          <Text style={styles.cardText}>Cedula: {item.User.cedula}</Text>
         </View>
       </TouchableOpacity>
     );
