@@ -22,9 +22,7 @@ const DashboardHealthcare = () => {
                         if (latidosProperty) {
                             const nuevoValorRitmoCardiaco = parseFloat(latidosProperty.last_value);
                             setRitmoCardiaco(nuevoValorRitmoCardiaco);
-                            // Asegúrate de que la actualización de dataValues refleje los cambios en tiempo real
                             setDataValues(prevData => {
-                                // Aquí creas un nuevo array que refleje el cambio, preservando la longitud deseada del array
                                 const newData = [...prevData.slice(1), nuevoValorRitmoCardiaco];
                                 return newData;
                             });
@@ -33,7 +31,6 @@ const DashboardHealthcare = () => {
                 })
                 .catch(error => console.error("Error fetching device data:", error));
         };
-        // Establece un intervalo para la actualización. Ajusta este intervalo según la frecuencia de actualización deseada.
         const intervalId = setInterval(fetchRitmoCardiaco, 5000);
         return () => clearInterval(intervalId);
     }, []);
@@ -71,7 +68,7 @@ const DashboardHealthcare = () => {
         propsForLabels: {
             fontSize: 10,
         },
-        decimalPlaces: 0, // Muestra valores sin decimales para simular mejor un electrocardiograma
+        decimalPlaces: 0,
     };
 
     return (
