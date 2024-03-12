@@ -46,7 +46,6 @@ const LoginScreen = ({ deviceToken }) => {
       if (response.ok) {
         const data = await response.json();
         console.log("Login Success", data);
-        Alert.alert('Inicio de sesión exitoso', `Has iniciado sesión! Token del dispositivo: ${deviceToken}`);
         setUser(data.user);
         navigation.navigate('Main');
 

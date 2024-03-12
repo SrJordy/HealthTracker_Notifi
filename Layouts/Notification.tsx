@@ -29,7 +29,12 @@ export const useNotifications = () => {
     requestPermissionAndSetupChannel();
 
     const unsubscribe = messaging().onMessage(async remoteMessage => {
-      Alert.alert('Notificación recibida', JSON.stringify(remoteMessage.notification));
+      const { title, body } = remoteMessage.notification || {};
+    
+      Alert.alert(
+        'Notificación recibida',
+        `${body}`
+      );
     });
 
     return unsubscribe;
