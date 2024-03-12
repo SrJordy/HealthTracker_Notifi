@@ -9,6 +9,8 @@ const TemperatureDashboard = () => {
     const navigation = useNavigation();
     const [temperatura, setTemperatura] = useState(null);
     const [dataValues, setDataValues] = useState(Array(60).fill(0));
+    const [estado, setEstado] = useState('normal');
+    const [notificationSent, setNotificationSent] = useState(false);
 
     useEffect(() => {
         const fetchTemperatura = () => {
@@ -19,30 +21,68 @@ const TemperatureDashboard = () => {
                     if (deviceData) {
                         const temperaturaProperty = deviceData.thing.properties.find(prop => prop.name === 'temperatura');
                         if (temperaturaProperty) {
-                            setTemperatura(parseFloat(temperaturaProperty.last_value));
+                            const newTemperatura = parseFloat(temperaturaProperty.last_value);
+                            setTemperatura(newTemperatura);
+                            setDataValues(prevData => [...prevData.slice(1), newTemperatura]);
+                            const newEstado = calcularEstado(newTemperatura);
+                            setEstado(newEstado);
+                            if (newEstado !== estado) {
+                                setNotificationSent(false);
+                            }
                         }
                     }
                 })
                 .catch(error => console.error("Error fetching device data:", error));
         };
+
         const intervalId = setInterval(fetchTemperatura, 5000); 
         return () => clearInterval(intervalId);
-    }, []);
+    }, [estado]); 
 
     useEffect(() => {
-        if (temperatura !== null) { 
-            setDataValues(prevData => [...prevData.slice(1), temperatura]);
-        }
-    }, [temperatura]); 
+        const notificationInterval = setInterval(() => {
+            if (estado !== 'normal' && !notificationSent) {
+                enviarNotificacion();
+            }
+        }, 10000);
+    
+        return () => clearInterval(notificationInterval);
+    }, [estado, notificationSent]);
+    
+    useEffect(() => {
+        const notificationResetTimeout = setTimeout(() => {
+            setNotificationSent(false);
+        }, 10000);
+    
+        return () => clearTimeout(notificationResetTimeout);
+    }, [notificationSent]);
+    
 
-    let estado = 'normal';
-    if (temperatura < 36.0) estado = 'hipotermia';
-    else if (temperatura > 37.5) estado = 'fiebre';
+    const calcularEstado = (temp) => {
+        if (temp < 36.0) return 'hipotermia';
+        else if (temp > 37.5) return 'fiebre';
+        else return 'normal';
+    };
 
-    const estadoColor = {
-        normal: '#2ecc71',
-        fiebre: '#e74c3c',
-        hipotermia: '#3498db',
+    const enviarNotificacion = () => {
+        fetch('https://carinosaapi.onrender.com/api/sendp', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                title: 'Alerta de Temperatura',
+                body: `La temperatura del paciente es ${temperatura.toFixed(1)}°C, el paciente presenta un estado de ${estado}. Por favor, revise el estado del paciente.`
+            })
+        })
+        .then(response => {
+            if (response.ok) {
+                console.log('Notificación enviada con éxito');
+            } else {
+                console.error('Error al enviar la notificación');
+            }
+        })
+        .catch(error => console.error('Error al enviar la notificación:', error));
     };
 
     const handleBackButtonPress = () => navigation.goBack();
@@ -67,6 +107,12 @@ const TemperatureDashboard = () => {
         propsForLabels: {
             fontSize: 10,
         },
+    };
+
+    const estadoColor = {
+        normal: '#2ecc71',
+        fiebre: '#e74c3c',
+        hipotermia: '#3498db',
     };
 
     return (
