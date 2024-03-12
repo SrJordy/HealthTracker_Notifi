@@ -62,7 +62,7 @@ const DashboardHealthcare = () => {
             },
             body: JSON.stringify({
                 title: 'Alerta de Ritmo Cardíaco',
-                body: `El ritmo cardíaco es ${ritmoCardiaco} bpm, el paciente presenta un estado ${estado}. Por favor, revise el estado del paciente.`
+                body: `El ritmo cardíaco es ${ritmoCardiaco} bpm, el paciente presenta un estado de ${estado}. Por favor, revise el estado del paciente.`
             })
 
         })
