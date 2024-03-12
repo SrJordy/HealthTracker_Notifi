@@ -8,6 +8,7 @@ const DashboardHealthcare = () => {
     const lottieSource = require('./src/healthanimation.json');
     const navigation = useNavigation();
     const [ritmoCardiaco, setRitmoCardiaco] = useState(null);
+    const [estado, setEstado] = useState('normal');
 
     const [dataValues, setDataValues] = useState(Array(60).fill(0));
 
@@ -26,6 +27,8 @@ const DashboardHealthcare = () => {
                                 const newData = [...prevData.slice(1), nuevoValorRitmoCardiaco];
                                 return newData;
                             });
+                            const newEstado = calcularEstado(nuevoValorRitmoCardiaco);
+                            setEstado(newEstado);
                         }
                     }
                 })
@@ -34,17 +37,44 @@ const DashboardHealthcare = () => {
         const intervalId = setInterval(fetchRitmoCardiaco, 5000);
         return () => clearInterval(intervalId);
     }, []);
-    
 
-    const estadoColor = {
-        normal: '#2ecc71',
-        bradicardia: '#3498db',
-        taquicardia: '#e74c3c',
+    useEffect(() => {
+        const notificationTimer = setInterval(() => {
+            if (estado !== 'normal') {
+                enviarNotificacion();
+            }
+        }, 10000);
+
+        return () => clearInterval(notificationTimer);
+    }, [estado]);
+
+    const calcularEstado = (ritmo) => {
+        if (ritmo < 60) return 'bradicardia';
+        else if (ritmo > 100) return 'taquicardia';
+        else return 'normal';
     };
 
-    let estado = 'normal';
-    if (ritmoCardiaco < 60) estado = 'bradicardia';
-    else if (ritmoCardiaco > 100) estado = 'taquicardia';
+    const enviarNotificacion = () => {
+        fetch('https://carinosaapi.onrender.com/api/sendp', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                title: 'Alerta de Ritmo Cardíaco',
+                body: `El ritmo cardíaco es ${ritmoCardiaco} bpm, el paciente presenta un estado ${estado}. Por favor, revise el estado del paciente.`
+            })
+
+        })
+        .then(response => {
+            if (response.ok) {
+                console.log('Notificación enviada con éxito');
+            } else {
+                console.error('Error al enviar la notificación');
+            }
+        })
+        .catch(error => console.error('Error al enviar la notificación:', error));
+    };
 
     const handleBackButtonPress = () => navigation.goBack();
 
@@ -69,6 +99,12 @@ const DashboardHealthcare = () => {
             fontSize: 10,
         },
         decimalPlaces: 0,
+    };
+
+    const estadoColor = {
+        normal: '#2ecc71',
+        bradicardia: '#3498db',
+        taquicardia: '#e74c3c',
     };
 
     return (
