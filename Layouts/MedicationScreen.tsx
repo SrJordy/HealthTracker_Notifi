@@ -23,6 +23,8 @@ const MedicationReminderScreen = () => {
   const navigation = useNavigation();
   const [medicationData, setMedicationData] = useState([]);
 
+  const [refreshKey, setRefreshKey] = useState(0);
+
   const [medicamentos, setMedicamentos] = useState([]);
   const [medicamentoSeleccionado, setMedicamentoSeleccionado] = useState(null);
   const [cantidad, setCantidad] = useState('');
@@ -42,48 +44,54 @@ const MedicationReminderScreen = () => {
     fetch('https://carinosaapi.onrender.com/horariomedicamentos/getAll')
       .then((response) => response.json())
       .then((data) => {
-        // Filtrar en el cliente los medicamentos por paciente_id
-        const medicamentosFiltrados = data.filter(med => med.paciente_id === pacienteId);
+        if (data && data.horariosMedicamentos && Array.isArray(data.horariosMedicamentos)) {
+          const medicamentosFiltrados = data.horariosMedicamentos.filter(med => med.paciente_id === pacienteId);
+          if (medicamentosFiltrados.length > 0) {
+            const groupedMedications = medicamentosFiltrados.reduce((acc, medication) => {
+              const { medicamento_id } = medication;
+              if (!acc[medicamento_id]) {
+                acc[medicamento_id] = [];
+              }
+              acc[medicamento_id].push(medication);
+              return acc;
+            }, {});
 
-        if (medicamentosFiltrados.length > 0) {
-          // Procesar los medicamentos filtrados como antes
-          const groupedMedications = medicamentosFiltrados.reduce((acc, medication) => {
-            const { medicamento_id } = medication;
-            if (!acc[medicamento_id]) {
-              acc[medicamento_id] = [];
-            }
-            acc[medicamento_id].push(medication);
-            return acc;
-          }, {});
-
-          const medicationsWithMaxDoses = Object.values(groupedMedications).map((medications) => {
-            medications.sort((a, b) => b.dosis_restantes - a.dosis_restantes);
-            const medicationWithMaxDose = medications[0];
-
-            const calculatedTimes = [];
-            for (let i = 0; i < medicationWithMaxDose.dosis_restantes; i++) {
-              const time = new Date(new Date(medicationWithMaxDose.hora_inicial).getTime() + i * medicationWithMaxDose.frecuencia * 3600000);
-              calculatedTimes.push(time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-            }
-
-            return {
-              ...medicationWithMaxDose,
-              horasConsumo: calculatedTimes,
-            };
-          });
-
-          setMedicationData(medicationsWithMaxDoses);
-        } else {
-          // Si no hay medicamentos para el paciente actual, puedes manejarlo como prefieras
+            const medicationsWithMaxDoses = Object.values(groupedMedications).map((medications) => {
+              medications.sort((a, b) => b.dosis_restantes - a.dosis_restantes);
+              const medicationWithMaxDose = medications[0];
+              const calculatedTimes = [];
+              for (let i = 0; i < medicationWithMaxDose.dosis_restantes; i++) {
+                const time = new Date(new Date(medicationWithMaxDose.hora_inicial).getTime() + i * medicationWithMaxDose.frecuencia * 3600000);
+                calculatedTimes.push(time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+              }
+              return {
+                ...medicationWithMaxDose,
+                horasConsumo: calculatedTimes,
+              };
+            });
+            setMedicationData(medicationsWithMaxDoses);
+          } else {
+            setMedicationData([]);
+            Alert.alert("Información", "No hay medicamentos registrados para este paciente.");
+          }
+        } else if (data && data.horariosMedicamentos === null) {
           setMedicationData([]);
-          Alert.alert("Información", "No hay medicamentos registrados para este paciente.");
+          Alert.alert("Información", "No se encontraron horarios de medicamentos para este paciente.");
+        } else {
+          console.error('El formato de la respuesta no es el esperado o no hay horarios de medicamentos:', data);
+          Alert.alert('Información', 'No se encontraron horarios de medicamentos para este paciente.');
+          setMedicationData([]);
         }
       })
+
+
+
       .catch((error) => {
         console.error('Error al obtener medicamentos:', error);
         Alert.alert('Error', 'Error al cargar los medicamentos. Por favor, intente más tarde.');
       });
-  }, [user, pacie]); // Dependencias del useEffect
+  }, [user, pacie]);
+
 
 
   //obtener los medicamentos generales
@@ -140,7 +148,7 @@ const MedicationReminderScreen = () => {
 
 
   const handleCancel = () => {
-    setNewMed({ nombre: '', descripcion: '' }); // Limpiar campos
+    setNewMed({ nombre: '', descripcion: '' }); 
     setShowAddForm(false);
     setShowOptions(false);
   };
@@ -156,28 +164,16 @@ const MedicationReminderScreen = () => {
   };
 
   const guardarHorario = async () => {
-    console.log("id del paciente", pacienteID);
-    // Asegurarse de que medicamentoSeleccionado no sea null y contenga un id
     if (!medicamentoSeleccionado || !medicamentoSeleccionado.ID || !cantidad.trim() || !frecuencia.trim()) {
       Alert.alert('Por favor, complete todos los campos correctamente.');
       return;
     }
-
-    // Asegurarse de que pacienteId esté definido
-    if (!pacienteID) {
-      Alert.alert('Error: El ID del paciente no está disponible.');
-      return;
-    }
-
     const dataParaEnviar = {
       pacienteID: pacienteID,
       medicamentoID: medicamentoSeleccionado.ID,
       dosisInicial: parseInt(cantidad, 10),
       frecuencia: parseInt(frecuencia, 10),
     };
-
-    console.log('Datos a guardar:', dataParaEnviar);
-
     try {
       const response = await fetch('https://carinosaapi.onrender.com/horariomedicamentos/insert', {
         method: 'POST',
@@ -186,7 +182,6 @@ const MedicationReminderScreen = () => {
         },
         body: JSON.stringify(dataParaEnviar),
       });
-
       if (response.ok) {
         Alert.alert('Horario guardado con éxito');
         setMedicamentoSeleccionado(null);
@@ -198,11 +193,31 @@ const MedicationReminderScreen = () => {
         Alert.alert('Error al guardar el horario: ' + (errorData.message || 'Por favor, intente nuevamente'));
       }
     } catch (error) {
-      console.error('Error al guardar el horario:', error);
       Alert.alert('Error al conectar con el servidor. Por favor, intente más tarde.');
     }
   };
 
+
+  const handleDeleteSchedule = async (pacienteId, medicamentoId) => {
+    try {
+      const url = `https://carinosaapi.onrender.com/horariomedicamentos/delete/${pacienteId}/${medicamentoId}`;
+      const response = await fetch(url, {
+        method: 'DELETE',
+      });
+  
+      if (!response.ok) throw new Error('La respuesta de la API no fue exitosa.');
+  
+      const updatedMedicationData = medicationData.filter(medication => !(medication.paciente_id === pacienteID && medication.medicamento_id === medicamentoId));
+      
+      setMedicationData(updatedMedicationData); 
+  
+      Alert.alert('Éxito', 'El horario ha sido eliminado correctamente.');
+    } catch (error) {
+      console.error('Error al eliminar el horario:', error);
+      Alert.alert('Error', 'No se pudo eliminar el horario. Por favor, intente más tarde.');
+    }
+  };
+  
 
 
 
@@ -227,6 +242,13 @@ const MedicationReminderScreen = () => {
             {medication.horasConsumo.map((hora, idx) => (
               <Text key={idx} style={styles.infoText}>{`- ${hora}`}</Text>
             ))}
+            {user.roles === 'cuidador' && (
+      <TouchableOpacity
+        style={styles.deleteButton}
+        onPress={() => handleDeleteSchedule(medication.paciente_id, medication.medicamento_id)}>
+        <Text style={styles.deleteButtonText}>Eliminar</Text>
+      </TouchableOpacity>
+    )}
           </View>
         ))}
       </ScrollView>
@@ -251,8 +273,8 @@ const MedicationReminderScreen = () => {
           <TouchableOpacity
             style={styles.floatingButton}
             onPress={() => {
-              setShowOptions(false); // Oculta los botones flotantes
-              setShowScheduleForm(true); // Muestra el formulario de horarios
+              setShowOptions(false);
+              setShowScheduleForm(true);
             }}
           >
             <Text style={styles.floatingButtonText}>Horarios</Text>
@@ -370,6 +392,16 @@ const styles = StyleSheet.create({
     right: 20,
     bottom: 90,
     alignItems: 'flex-end',
+  },
+  deleteButton: {
+    marginTop: 10,
+    backgroundColor: 'red',
+    padding: 10,
+    borderRadius: 5,
+  },
+  deleteButtonText: {
+    color: 'white',
+    textAlign: 'center',
   },
   floatingButton: {
     backgroundColor: '#007bff',
