@@ -29,13 +29,13 @@ const CalendarScreen = () => {
   const loadEvents = useCallback(async () => {
     try {
       const response = await axios.get('https://carinosaapi.onrender.com/agenda/getAll');
-      const data = response.data.filter(event => event.paciente_id === pacienteID); // Usar pacienteID
+      const data = response.data.filter(event => event.paciente_id === pacienteID);
       setFilteredEvents(data);
     } catch (error) {
       console.error('Error al obtener los eventos:', error);
       Alert.alert("Error", "No se pudieron cargar los eventos.");
     }
-  }, [pacienteID]); // Dependencia de pacienteID en useCallback
+  }, [pacienteID]); 
 
 
 
@@ -118,17 +118,31 @@ const CalendarScreen = () => {
   };
 
   const handleDeleteEvent = (id) => {
-    /*if (user.roles.includes('cuidador')) {
-      axios.delete(`https://carinosaapi.onrender.com/agenda/delete/${id}`)
-        .then(response => {
-          Alert.alert("Éxito", "Evento eliminado exitosamente.");
-        })
-        .catch(error => {
-          console.error('Error al eliminar el evento:', error);
-          Alert.alert("Error", "No se pudo eliminar el evento. Intente nuevamente.");
-        });
-    }*/
+    Alert.alert(
+      "Eliminar Evento",
+      `¿Estás seguro de que deseas eliminar el evento con ID: ${id}?`,
+      [
+        {
+          text: "Cancelar",
+          style: "cancel"
+        },
+        { text: "Eliminar", onPress: () => deleteEvent(id) }
+      ]
+    );
   };
+  
+  const deleteEvent = (id) => {
+    axios.delete(`https://carinosaapi.onrender.com/agenda/delete/${id}`)
+      .then(response => {
+        loadEvents();
+        Alert.alert("Éxito", "Evento eliminado exitosamente.");
+      })
+      .catch(error => {
+        console.error('Error al eliminar el evento:', error);
+        Alert.alert("Error", "No se pudo eliminar el evento. Intente nuevamente.");
+      });
+  };
+  
 
   return (
     <SafeAreaView style={styles.container}>

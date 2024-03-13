@@ -21,7 +21,11 @@ const TemperatureDashboard = () => {
                     if (deviceData) {
                         const temperaturaProperty = deviceData.thing.properties.find(prop => prop.name === 'temperatura');
                         if (temperaturaProperty) {
-                            const newTemperatura = parseFloat(temperaturaProperty.last_value);
+                            let newTemperatura = parseFloat(temperaturaProperty.last_value);
+                            // Aquí se verifica si newTemperatura es NaN. Si es así, se establece a 0.
+                            if (isNaN(newTemperatura)) {
+                                newTemperatura = 0;
+                            }
                             setTemperatura(newTemperatura);
                             setDataValues(prevData => [...prevData.slice(1), newTemperatura]);
                             const newEstado = calcularEstado(newTemperatura);
@@ -34,6 +38,7 @@ const TemperatureDashboard = () => {
                 })
                 .catch(error => console.error("Error fetching device data:", error));
         };
+        
 
         const intervalId = setInterval(fetchTemperatura, 5000); 
         return () => clearInterval(intervalId);
@@ -124,7 +129,7 @@ const TemperatureDashboard = () => {
             <View style={styles.lottieContainer}>
                 <LottieView source={lottieSource} autoPlay loop style={styles.lottieLogo} />
             </View>
-            <Text style={styles.temperature}>Temperatura: {temperatura ? `${temperatura.toFixed(1)}°C` : 'Cargando...'}</Text>
+            <Text style={styles.temperature}>Temperatura: {temperatura !== null && !isNaN(temperatura) ? `${temperatura.toFixed(1)}°C` : '0°C'}</Text>
             <Text style={[styles.status, { color: estadoColor[estado] }]}>Estado: {estado}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <LineChart data={data} width={chartWidth} height={300} chartConfig={chartConfig} yAxisSuffix="°C" bezier />
